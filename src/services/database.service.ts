@@ -3,6 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import type {
   ClientRecord,
   CreateRecordInput,
+  UpdateRecordInput,
   DatabaseRecord,
   DatabaseUser,
   User,
@@ -260,6 +261,37 @@ export async function deleteRecord(id: number): Promise<boolean> {
   ]);
 
   return result.changes > 0;
+}
+
+/**
+ * Update an existing client record
+ */
+export async function updateRecord(
+  input: UpdateRecordInput,
+): Promise<ClientRecord | null> {
+  const database = await getDatabase();
+
+  // Update the record and set updated_at to current timestamp
+  const result = await database.runAsync(
+    'UPDATE records SET ruc = ?, client_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [input.ruc, input.clientName, input.id],
+  );
+
+  if (result.changes === 0) {
+    return null; // Record not found
+  }
+
+  // Fetch the updated record
+  const record = await database.getFirstAsync<DatabaseRecord>(
+    'SELECT * FROM records WHERE id = ?',
+    [input.id],
+  );
+
+  if (!record) {
+    return null;
+  }
+
+  return mapDatabaseRecordToClientRecord(record);
 }
 
 /**

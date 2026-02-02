@@ -30,6 +30,12 @@ export interface CreateRecordInput {
   clientName: string;
 }
 
+export interface UpdateRecordInput {
+  id: number;
+  ruc: string;
+  clientName: string;
+}
+
 // ============================================
 // Bluetooth Types
 // ============================================

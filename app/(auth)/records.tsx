@@ -1,24 +1,37 @@
-import { Card } from '@/src/components/ui';
-import { deleteRecord, getAllRecords } from '@/src/services/database.service';
+import { Button, Card, Input } from '@/src/components/ui';
+import { deleteRecord, getAllRecords, updateRecord } from '@/src/services/database.service';
 import type { ClientRecord } from '@/src/types';
 import { COLORS, FONT_SIZES, SPACING } from '@/src/utils/constants';
+import { getRUCError, getClientNameError } from '@/src/utils/validators';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Modal,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 
 export default function RecordsScreen() {
   const [records, setRecords] = useState<ClientRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Edit modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<ClientRecord | null>(null);
+  const [editRuc, setEditRuc] = useState('');
+  const [editClientName, setEditClientName] = useState('');
+  const [editErrors, setEditErrors] = useState<{ ruc?: string; clientName?: string }>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadRecords = async () => {
     try {
@@ -69,6 +82,72 @@ export default function RecordsScreen() {
     );
   };
 
+  const handleEdit = (record: ClientRecord) => {
+    setEditingRecord(record);
+    setEditRuc(record.ruc);
+    setEditClientName(record.clientName);
+    setEditErrors({});
+    setEditModalVisible(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalVisible(false);
+    setEditingRecord(null);
+    setEditRuc('');
+    setEditClientName('');
+    setEditErrors({});
+  };
+
+  const validateEdit = (): boolean => {
+    const newErrors: { ruc?: string; clientName?: string } = {};
+
+    const rucError = getRUCError(editRuc);
+    if (rucError) {
+      newErrors.ruc = rucError;
+    }
+
+    const nameError = getClientNameError(editClientName);
+    if (nameError) {
+      newErrors.clientName = nameError;
+    }
+
+    setEditErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRecord || !validateEdit()) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const updatedRecord = await updateRecord({
+        id: editingRecord.id,
+        ruc: editRuc.trim(),
+        clientName: editClientName.trim(),
+      });
+
+      if (updatedRecord) {
+        // Update the record in the local state
+        setRecords((prev) =>
+          prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
+        );
+        
+        handleCloseEditModal();
+        Alert.alert('Actualizado', 'El registro ha sido actualizado correctamente');
+      } else {
+        Alert.alert('Error', 'No se pudo actualizar el registro');
+      }
+    } catch (error) {
+      console.error('Error updating record:', error);
+      Alert.alert('Error', 'Ocurrió un error al actualizar el registro');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -87,12 +166,22 @@ export default function RecordsScreen() {
         <View style={styles.idBadge}>
           <Text style={styles.idText}>#{item.id}</Text>
         </View>
-        <TouchableOpacity
-          onPress={() => handleDelete(item)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-        </TouchableOpacity>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            onPress={() => handleEdit(item)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.actionButton}
+          >
+            <Ionicons name="pencil-outline" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDelete(item)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.actionButton}
+          >
+            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.recordBody}>
@@ -125,6 +214,18 @@ export default function RecordsScreen() {
           <Text style={styles.recordLabel}>Fecha:</Text>
           <Text style={styles.recordValue}>{formatDate(item.createdAt)}</Text>
         </View>
+
+        {item.updatedAt !== item.createdAt && (
+          <View style={styles.recordRow}>
+            <Ionicons
+              name="refresh-outline"
+              size={16}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.recordLabel}>Editado:</Text>
+            <Text style={styles.recordValue}>{formatDate(item.updatedAt)}</Text>
+          </View>
+        )}
       </View>
     </Card>
   );
@@ -171,6 +272,88 @@ export default function RecordsScreen() {
         ListEmptyComponent={!isLoading ? renderEmpty : null}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Edit Modal */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseEditModal}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Editar Registro</Text>
+              <TouchableOpacity onPress={handleCloseEditModal}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              {editingRecord && (
+                <View style={styles.modalIdContainer}>
+                  <Text style={styles.modalIdLabel}>ID del Registro:</Text>
+                  <View style={styles.modalIdBadge}>
+                    <Text style={styles.modalIdText}>#{editingRecord.id}</Text>
+                  </View>
+                </View>
+              )}
+
+              <Input
+                label="RUC *"
+                placeholder="Ingrese el RUC (11 dígitos)"
+                value={editRuc}
+                onChangeText={(text) => {
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  setEditRuc(numericText);
+                  if (editErrors.ruc) {
+                    setEditErrors((prev) => ({ ...prev, ruc: undefined }));
+                  }
+                }}
+                keyboardType="numeric"
+                maxLength={11}
+                error={editErrors.ruc}
+              />
+
+              <Input
+                label="Nombre del Cliente *"
+                placeholder="Ingrese el nombre del cliente"
+                value={editClientName}
+                onChangeText={(text) => {
+                  setEditClientName(text);
+                  if (editErrors.clientName) {
+                    setEditErrors((prev) => ({ ...prev, clientName: undefined }));
+                  }
+                }}
+                autoCapitalize="words"
+                error={editErrors.clientName}
+              />
+
+              <Text style={styles.modalNote}>
+                * La fecha de actualización se registrará automáticamente
+              </Text>
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Cancelar"
+                onPress={handleCloseEditModal}
+                variant="outline"
+                style={styles.modalButton}
+              />
+              <Button
+                title="Guardar"
+                onPress={handleSaveEdit}
+                loading={isSaving}
+                style={styles.modalButton}
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -230,6 +413,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  actionButton: {
+    padding: SPACING.xs,
+  },
   recordBody: {
     gap: SPACING.sm,
   },
@@ -267,5 +457,70 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.sm,
     lineHeight: 20,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  modalContent: {
+    padding: SPACING.lg,
+  },
+  modalIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  modalIdLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginRight: SPACING.sm,
+  },
+  modalIdBadge: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: 8,
+  },
+  modalIdText: {
+    color: COLORS.surface,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+  },
+  modalNote: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textLight,
+    fontStyle: 'italic',
+    marginTop: SPACING.sm,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    padding: SPACING.lg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  modalButton: {
+    flex: 1,
   },
 });
