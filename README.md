@@ -1,50 +1,132 @@
-# Welcome to your Expo app 👋
+# HMG Demo - Aplicación Móvil
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil demo desarrollada con React Native y Expo para HMG.
 
-## Get started
+## Características
 
-1. Install dependencies
+- **Autenticación**: Login con usuario y contraseña con validación básica
+- **Conectividad Bluetooth**: Búsqueda y selección de dispositivos BLE y Bluetooth clásico
+- **Registro de Información**: Formulario con validación de RUC peruano
+- **Persistencia Local**: Base de datos SQLite para almacenamiento de registros
 
-   ```bash
-   npm install
-   ```
+## Requisitos Previos
 
-2. Start the app
+- Node.js 18+
+- npm o yarn
+- Android Studio (para Android)
+- Xcode (para iOS, solo macOS)
+- Dispositivo físico (para probar Bluetooth)
 
-   ```bash
-   npx expo start
-   ```
+## Instalación
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Instalar dependencias:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Generar el proyecto nativo (requerido para Bluetooth):
 
-## Learn more
+```bash
+npx expo prebuild
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Ejecución
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Development Build (Recomendado para probar Bluetooth)
 
-## Join the community
+```bash
+# Android
+npx expo run:android
 
-Join our community of developers creating universal apps.
+# iOS
+npx expo run:ios
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Expo Go (Sin Bluetooth)
+
+```bash
+npx expo start
+```
+
+> **Nota**: Bluetooth NO funciona en Expo Go. Se requiere un development build.
+
+## Estructura del Proyecto
+
+```
+├── app/                    # Pantallas (Expo Router)
+│   ├── _layout.tsx         # Layout raíz
+│   ├── index.tsx           # Redirect inicial
+│   ├── login.tsx           # Pantalla de login
+│   └── (auth)/             # Rutas autenticadas
+│       ├── index.tsx       # Home
+│       ├── bluetooth.tsx   # Escaneo BT
+│       ├── register.tsx    # Registro de clientes
+│       └── records.tsx     # Historial
+│
+├── src/
+│   ├── components/ui/      # Componentes UI
+│   ├── stores/             # Estado Zustand
+│   ├── services/           # Base de datos
+│   ├── types/              # TypeScript types
+│   └── utils/              # Validadores y constantes
+```
+
+## Funcionalidades
+
+### Autenticación
+
+- Login con credenciales locales
+- Sesión persistente con SecureStore
+- Logout con confirmación
+
+### Bluetooth
+
+- Escaneo de dispositivos BLE
+- Escaneo de dispositivos clásicos pareados
+- Selección de dispositivo
+- Indicador de señal (RSSI)
+
+### Registro de Clientes
+
+- ID autonumérico
+- Fecha y hora automática al guardar
+- Validación de RUC peruano (algoritmo módulo 11)
+- Nombre del cliente
+
+### Historial
+
+- Lista de todos los registros
+- Pull-to-refresh
+- Eliminar registros
+
+## Validación de RUC
+
+El RUC peruano se valida con las siguientes reglas:
+
+- 11 dígitos exactos
+- Prefijos válidos: 10, 15, 17, 20
+- Dígito verificador (algoritmo módulo 11)
+
+## Tecnologías
+
+- **React Native** + **Expo SDK 54**
+- **Expo Router** - Navegación
+- **Zustand** - Estado global
+- **expo-sqlite** - Base de datos
+- **react-native-ble-plx** - Bluetooth BLE
+- **react-native-bluetooth-classic** - Bluetooth clásico
+- **TypeScript** - Tipado estático
+
+## Documentación Adicional
+
+Ver [ARCHITECTURE.md](./ARCHITECTURE.md) para detalles de la arquitectura.
+
+## Scripts Disponibles
+
+```bash
+npm start          # Iniciar servidor de desarrollo
+npm run android    # Ejecutar en Android
+npm run ios        # Ejecutar en iOS
+npm run lint       # Ejecutar ESLint
+```

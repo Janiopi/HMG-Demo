@@ -113,12 +113,6 @@ export default function LoginScreen() {
             </Text>
           </Text>
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Credenciales demo: admin / admin123
-          </Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
