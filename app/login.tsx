@@ -141,6 +141,9 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FONT_SIZES.md,
     color: COLORS.textSecondary,
+    marginTop: SPACING.xxl,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   form: {
     backgroundColor: COLORS.surface,
