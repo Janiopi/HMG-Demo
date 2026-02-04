@@ -105,11 +105,8 @@ export default function BluetoothScreen() {
       return name.includes(query) || address.includes(query);
     });
 
-    // Sort: bonded first, then alphabetically
+    // Sort alphabetically by name
     return [...filtered].sort((a, b) => {
-      if (a.bonded !== b.bonded) {
-        return a.bonded ? -1 : 1;
-      }
       return (a.name || '').localeCompare(b.name || '');
     });
   }, [classicDevices, searchQuery]);
@@ -250,11 +247,11 @@ export default function BluetoothScreen() {
 
       {/* Classic Bluetooth Section */}
       <Text style={[styles.sectionTitle, styles.classicSection]}>
-        Bluetooth Clásico
+        Bluetooth Clásico (Pareados)
       </Text>
 
       <Button
-        title="Buscar Dispositivos Pareados"
+        title="Mostrar Dispositivos Pareados"
         onPress={handleClassicScan}
         variant="secondary"
         disabled={isScanning}
@@ -268,7 +265,6 @@ export default function BluetoothScreen() {
               key={device.id}
               name={device.name}
               id={device.address}
-              bonded={device.bonded}
               type="classic"
               isSelected={
                 selectedDevice?.type === 'classic' && 
@@ -292,13 +288,12 @@ interface DeviceItemProps {
   name: string | null;
   id: string;
   rssi?: number | null;
-  bonded?: boolean;
   type: 'ble' | 'classic';
   isSelected: boolean;
   onPress: () => void;
 }
 
-function DeviceItem({ name, id, rssi, bonded, type, isSelected, onPress }: DeviceItemProps) {
+function DeviceItem({ name, id, rssi, type, isSelected, onPress }: DeviceItemProps) {
   const signalBars = rssiToBars(rssi);
   const signalLabel = getSignalLabel(signalBars);
 
@@ -325,11 +320,6 @@ function DeviceItem({ name, id, rssi, bonded, type, isSelected, onPress }: Devic
             <SignalBars bars={signalBars} />
             <Text style={styles.signalText}>{signalLabel} ({rssi} dBm)</Text>
           </View>
-        )}
-        {bonded !== undefined && (
-          <Text style={styles.deviceBonded}>
-            {bonded ? 'Pareado' : 'No pareado'}
-          </Text>
         )}
       </View>
       {isSelected && (
@@ -474,11 +464,6 @@ const styles = StyleSheet.create({
   deviceRssi: {
     fontSize: FONT_SIZES.xs,
     color: COLORS.textLight,
-    marginTop: 2,
-  },
-  deviceBonded: {
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.success,
     marginTop: 2,
   },
   emptyText: {

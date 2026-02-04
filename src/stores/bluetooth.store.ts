@@ -179,9 +179,9 @@ export const useBluetoothStore = create<BluetoothState>((set, get) => ({
   },
 
   /**
-   * Start classic Bluetooth scan
-   * Note: This requires react-native-bluetooth-classic which has limited support
-   * For demo purposes, we'll show a message or use mock data
+   * Get paired/bonded classic Bluetooth devices
+   * Note: Classic Bluetooth discovery requires devices to be in discoverable mode,
+   * which is unreliable. We focus on paired devices which is the common use case.
    */
   startClassicScan: async () => {
     const { isScanning } = get();
@@ -220,7 +220,7 @@ export const useBluetoothStore = create<BluetoothState>((set, get) => ({
           return;
         }
 
-        // Get paired/bonded devices
+        // Get paired/bonded devices only
         const pairedDevices = await RNBluetoothClassic.getBondedDevices();
         
         const classicDevices: ClassicDevice[] = pairedDevices.map((device: any) => ({
@@ -230,43 +230,21 @@ export const useBluetoothStore = create<BluetoothState>((set, get) => ({
           bonded: true,
         }));
 
-        set({ classicDevices });
-
-        // Try to discover new devices (may not work on all devices)
-        try {
-          const discoveredDevices = await RNBluetoothClassic.startDiscovery();
-          
-          const newDevices: ClassicDevice[] = discoveredDevices
-            .filter((device: any) => !classicDevices.some(d => d.address === device.address))
-            .map((device: any) => ({
-              id: device.id || device.address,
-              name: device.name || 'Dispositivo desconocido',
-              address: device.address,
-              bonded: false,
-            }));
-
-          set((state) => ({
-            classicDevices: [...state.classicDevices, ...newDevices],
-          }));
-        } catch (discoveryError) {
-          console.log('Discovery not supported or failed:', discoveryError);
-        }
+        set({ classicDevices, isScanning: false });
 
       } catch (classicError) {
-        console.log('Bluetooth Classic not available, showing paired devices only');
-        // Fallback: Just show that classic BT is not fully supported
+        console.log('Bluetooth Classic not available:', classicError);
         set({ 
-          error: 'Bluetooth clásico: solo dispositivos pareados disponibles' 
+          isScanning: false,
+          error: 'Bluetooth clásico no disponible en este dispositivo' 
         });
       }
-
-      set({ isScanning: false });
       
     } catch (error) {
       console.error('Classic BT scan error:', error);
       set({ 
         isScanning: false, 
-        error: 'Error al escanear Bluetooth clásico' 
+        error: 'Error al obtener dispositivos Bluetooth' 
       });
     }
   },
