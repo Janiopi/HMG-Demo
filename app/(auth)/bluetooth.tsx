@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -73,22 +73,46 @@ export default function BluetoothScreen() {
     checkBLEState();
   }, []);
 
-  // Filter devices by search query
-  const filteredBLEDevices = bleDevices.filter(device => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const name = device.name?.toLowerCase() || '';
-    const id = device.id.toLowerCase();
-    return name.includes(query) || id.includes(query);
-  });
+  // Filter and sort BLE devices by signal strength
+  const filteredBLEDevices = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter by name or ID
+    const filtered = bleDevices.filter(device => {
+      if (!query) return true;
+      const name = device.name?.toLowerCase() || '';
+      const id = device.id.toLowerCase();
+      return name.includes(query) || id.includes(query);
+    });
 
-  const filteredClassicDevices = classicDevices.filter(device => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const name = device.name?.toLowerCase() || '';
-    const address = device.address.toLowerCase();
-    return name.includes(query) || address.includes(query);
-  });
+    // Sort by RSSI (strongest signal first)
+    return [...filtered].sort((a, b) => {
+      const rssiA = a.rssi ?? -100;
+      const rssiB = b.rssi ?? -100;
+      return rssiB - rssiA;
+    });
+  }, [bleDevices, searchQuery]);
+
+  // Filter and sort Classic devices alphabetically
+  const filteredClassicDevices = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter by name or address
+    const filtered = classicDevices.filter(device => {
+      if (!query) return true;
+      const name = device.name?.toLowerCase() || '';
+      const address = device.address.toLowerCase();
+      return name.includes(query) || address.includes(query);
+    });
+
+    // Sort: bonded first, then alphabetically
+    return [...filtered].sort((a, b) => {
+      if (a.bonded !== b.bonded) {
+        return a.bonded ? -1 : 1;
+      }
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [classicDevices, searchQuery]);
 
   useEffect(() => {
     if (error) {
