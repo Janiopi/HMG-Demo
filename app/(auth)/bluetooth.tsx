@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card } from '@/src/components/ui';
@@ -65,9 +66,29 @@ export default function BluetoothScreen() {
     checkBLEState,
   } = useBluetoothStore();
 
+  // Search filter state
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     checkBLEState();
   }, []);
+
+  // Filter devices by search query
+  const filteredBLEDevices = bleDevices.filter(device => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const name = device.name?.toLowerCase() || '';
+    const id = device.id.toLowerCase();
+    return name.includes(query) || id.includes(query);
+  });
+
+  const filteredClassicDevices = classicDevices.filter(device => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const name = device.name?.toLowerCase() || '';
+    const address = device.address.toLowerCase();
+    return name.includes(query) || address.includes(query);
+  });
 
   useEffect(() => {
     if (error) {
@@ -136,6 +157,25 @@ export default function BluetoothScreen() {
         )}
       </Card>
 
+      {/* Search Filter */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar dispositivo por nombre..."
+          placeholderTextColor={COLORS.textLight}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
+            <Ionicons name="close-circle" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* BLE Section */}
       <Text style={styles.sectionTitle}>Bluetooth Low Energy (BLE)</Text>
       
@@ -161,9 +201,9 @@ export default function BluetoothScreen() {
         </View>
       )}
 
-      {bleDevices.length > 0 ? (
+      {filteredBLEDevices.length > 0 ? (
         <View style={styles.deviceList}>
-          {bleDevices.map((device) => (
+          {filteredBLEDevices.map((device) => (
             <DeviceItem
               key={device.id}
               name={device.name}
@@ -180,7 +220,7 @@ export default function BluetoothScreen() {
         </View>
       ) : !isScanning && (
         <Text style={styles.emptyText}>
-          No se encontraron dispositivos BLE
+          {searchQuery ? 'No se encontraron dispositivos con ese nombre' : 'No se encontraron dispositivos BLE'}
         </Text>
       )}
 
@@ -197,9 +237,9 @@ export default function BluetoothScreen() {
         style={styles.fullButton}
       />
 
-      {classicDevices.length > 0 ? (
+      {filteredClassicDevices.length > 0 ? (
         <View style={styles.deviceList}>
-          {classicDevices.map((device) => (
+          {filteredClassicDevices.map((device) => (
             <DeviceItem
               key={device.id}
               name={device.name}
@@ -216,7 +256,7 @@ export default function BluetoothScreen() {
         </View>
       ) : (
         <Text style={styles.emptyText}>
-          No se encontraron dispositivos clásicos
+          {searchQuery ? 'No se encontraron dispositivos con ese nombre' : 'No se encontraron dispositivos clásicos'}
         </Text>
       )}
     </ScrollView>
@@ -448,5 +488,28 @@ const styles = StyleSheet.create({
   signalText: {
     fontSize: FONT_SIZES.xs,
     color: COLORS.textLight,
+  },
+  // Search filter styles
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  searchIcon: {
+    marginRight: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+  },
+  clearSearch: {
+    padding: SPACING.xs,
   },
 });
