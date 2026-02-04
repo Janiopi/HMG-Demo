@@ -14,6 +14,40 @@ import { useBluetoothStore } from '@/src/stores/bluetooth.store';
 import { COLORS, SPACING, FONT_SIZES } from '@/src/utils/constants';
 import type { BLEDevice, ClassicDevice, BluetoothDevice } from '@/src/types';
 
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Convert RSSI value to signal strength (0-4 bars)
+ * RSSI typically ranges from -30 (excellent) to -90 (very weak)
+ */
+function rssiToBars(rssi: number | null | undefined): number {
+  if (rssi === null || rssi === undefined) return 0;
+  if (rssi > -50) return 4;  // Excellent
+  if (rssi > -60) return 3;  // Good
+  if (rssi > -70) return 2;  // Fair
+  if (rssi > -80) return 1;  // Weak
+  return 0;                   // Very weak
+}
+
+/**
+ * Get signal strength label
+ */
+function getSignalLabel(bars: number): string {
+  switch (bars) {
+    case 4: return 'Excelente';
+    case 3: return 'Buena';
+    case 2: return 'Regular';
+    case 1: return 'Débil';
+    default: return 'Muy débil';
+  }
+}
+
+// ============================================
+// Main Component
+// ============================================
+
 export default function BluetoothScreen() {
   const {
     isScanning,
@@ -201,6 +235,9 @@ interface DeviceItemProps {
 }
 
 function DeviceItem({ name, id, rssi, bonded, type, isSelected, onPress }: DeviceItemProps) {
+  const signalBars = rssiToBars(rssi);
+  const signalLabel = getSignalLabel(signalBars);
+
   return (
     <TouchableOpacity
       style={[styles.deviceItem, isSelected && styles.deviceItemSelected]}
@@ -219,8 +256,11 @@ function DeviceItem({ name, id, rssi, bonded, type, isSelected, onPress }: Devic
           {name || 'Dispositivo sin nombre'}
         </Text>
         <Text style={styles.deviceId}>{id}</Text>
-        {rssi !== undefined && rssi !== null && (
-          <Text style={styles.deviceRssi}>Señal: {rssi} dBm</Text>
+        {type === 'ble' && rssi !== undefined && rssi !== null && (
+          <View style={styles.signalContainer}>
+            <SignalBars bars={signalBars} />
+            <Text style={styles.signalText}>{signalLabel} ({rssi} dBm)</Text>
+          </View>
         )}
         {bonded !== undefined && (
           <Text style={styles.deviceBonded}>
@@ -232,6 +272,30 @@ function DeviceItem({ name, id, rssi, bonded, type, isSelected, onPress }: Devic
         <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
       )}
     </TouchableOpacity>
+  );
+}
+
+// Signal Bars Component
+interface SignalBarsProps {
+  bars: number; // 0-4
+}
+
+function SignalBars({ bars }: SignalBarsProps) {
+  const barHeights = [6, 10, 14, 18];
+  
+  return (
+    <View style={styles.signalBars}>
+      {barHeights.map((height, index) => (
+        <View
+          key={index}
+          style={[
+            styles.signalBar,
+            { height },
+            index < bars ? styles.signalBarActive : styles.signalBarInactive,
+          ]}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -358,5 +422,31 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: FONT_SIZES.sm,
     paddingVertical: SPACING.lg,
+  },
+  // Signal indicator styles
+  signalContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  signalBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 2,
+    marginRight: SPACING.xs,
+  },
+  signalBar: {
+    width: 4,
+    borderRadius: 1,
+  },
+  signalBarActive: {
+    backgroundColor: COLORS.success,
+  },
+  signalBarInactive: {
+    backgroundColor: COLORS.border,
+  },
+  signalText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textLight,
   },
 });
