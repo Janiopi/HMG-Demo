@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card } from '@/src/components/ui';
 import { useBluetoothStore } from '@/src/stores/bluetooth.store';
@@ -50,6 +51,7 @@ function getSignalLabel(bars: number): string {
 // ============================================
 
 export default function BluetoothScreen() {
+  const router = useRouter();
   const {
     isScanning,
     isBLEEnabled,
@@ -135,11 +137,14 @@ export default function BluetoothScreen() {
 
   const handleSelectBLEDevice = (device: BLEDevice) => {
     selectDevice({ type: 'ble', device });
-    Alert.alert(
-      'Dispositivo Seleccionado',
-      `${device.name || 'Dispositivo sin nombre'}\nID: ${device.id}`,
-      [{ text: 'OK' }]
-    );
+    // Navigate to BLE device explorer screen
+    router.push({
+      pathname: '/ble-device' as const,
+      params: {
+        deviceId: device.id,
+        deviceName: device.name || 'Dispositivo sin nombre',
+      },
+    } as any);
   };
 
   const handleSelectClassicDevice = (device: ClassicDevice) => {
