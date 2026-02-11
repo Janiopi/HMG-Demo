@@ -120,3 +120,100 @@ export interface DatabaseRecord {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================
+// BLE Connection Types
+// ============================================
+
+/**
+ * Properties of a BLE characteristic
+ */
+export interface BLECharacteristicProperties {
+  read: boolean;
+  write: boolean;
+  writeWithoutResponse: boolean;
+  notify: boolean;
+  indicate: boolean;
+}
+
+/**
+ * BLE Characteristic with its properties and current value
+ */
+export interface BLECharacteristicInfo {
+  uuid: string;
+  serviceUUID: string;
+  properties: BLECharacteristicProperties;
+  value: string | null;
+  isNotifying: boolean;
+}
+
+/**
+ * BLE Service with its characteristics
+ */
+export interface BLEServiceInfo {
+  uuid: string;
+  characteristics: BLECharacteristicInfo[];
+  isExpanded: boolean;
+}
+
+/**
+ * Log entry for BLE communication
+ */
+export interface BLELogEntry {
+  id: string;
+  timestamp: Date;
+  direction: 'in' | 'out' | 'system';
+  type: 'connect' | 'disconnect' | 'discover' | 'read' | 'write' | 'notify' | 'error';
+  message: string;
+  data?: string;
+}
+
+/**
+ * BLE Connection state for a device
+ */
+export interface BLEConnectionState {
+  deviceId: string | null;
+  deviceName: string | null;
+  isConnected: boolean;
+  isConnecting: boolean;
+  isDiscovering: boolean;
+  services: BLEServiceInfo[];
+  logs: BLELogEntry[];
+  error: string | null;
+}
+
+/**
+ * Known UUIDs for common BLE services
+ */
+export const KNOWN_SERVICE_UUIDS: Record<string, string> = {
+  '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
+  '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
+  '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
+  '0000180f-0000-1000-8000-00805f9b34fb': 'Battery Service',
+  '0000181a-0000-1000-8000-00805f9b34fb': 'Environmental Sensing',
+  '12345678-1234-1234-1234-123456789abc': 'HMG Custom Service',
+};
+
+/**
+ * Known UUIDs for common BLE characteristics
+ */
+export const KNOWN_CHARACTERISTIC_UUIDS: Record<string, string> = {
+  '00002a00-0000-1000-8000-00805f9b34fb': 'Device Name',
+  '00002a01-0000-1000-8000-00805f9b34fb': 'Appearance',
+  '00002a19-0000-1000-8000-00805f9b34fb': 'Battery Level',
+  '00002a29-0000-1000-8000-00805f9b34fb': 'Manufacturer Name',
+  '00002a24-0000-1000-8000-00805f9b34fb': 'Model Number',
+  '00002a26-0000-1000-8000-00805f9b34fb': 'Firmware Revision',
+  '12345678-1234-1234-1234-123456789001': 'Counter',
+  '12345678-1234-1234-1234-123456789002': 'Message',
+};
+
+/**
+ * ESP32 Demo UUIDs
+ */
+export const ESP32_DEMO_UUIDS = {
+  SERVICE: '12345678-1234-1234-1234-123456789abc',
+  COUNTER: '12345678-1234-1234-1234-123456789001',
+  MESSAGE: '12345678-1234-1234-1234-123456789002',
+};
+
