@@ -1,7 +1,7 @@
-import { Tabs, Redirect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/stores/auth.store';
 import { COLORS } from '@/src/utils/constants';
+import { Ionicons } from '@expo/vector-icons';
+import { Redirect, Tabs } from 'expo-router';
 
 export default function AuthLayout() {
   const { isAuthenticated, isInitialized } = useAuthStore();
@@ -68,6 +68,12 @@ export default function AuthLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="list" size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="ble-device"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
